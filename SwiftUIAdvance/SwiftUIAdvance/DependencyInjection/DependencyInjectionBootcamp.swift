@@ -13,7 +13,7 @@
  
  Architecture: SwiftUI + MVVM + Protocol-Driven DI
  
- 🧱 Architecture Overview (Mental Model Applied)
+ 🧱 Architecture Overview (Mental Model Applied): 
  
  View
   ↓
