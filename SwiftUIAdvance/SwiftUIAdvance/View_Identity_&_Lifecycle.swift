@@ -184,10 +184,10 @@ struct ChildView3: View {
  → Unstable IDs
  
  1️⃣2️⃣ Professional Mental Model
- Views are descriptions
- Identity anchors state
- State lives outside structs
- SwiftUI reconciles trees
+ -> Views are descriptions
+ -> Identity anchors state
+ -> State lives outside structs
+ -> SwiftUI reconciles trees
 
  1️⃣3️⃣ One-Sentence Rule (Very Important)
  If a view disappears from the hierarchy, its local state is gone unless identity is preserved.
