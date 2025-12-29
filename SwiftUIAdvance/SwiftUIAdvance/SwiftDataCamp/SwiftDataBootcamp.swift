@@ -746,4 +746,197 @@ struct TaskListView: View {
  13. Senior-Level Rule
  SwiftData mutations should feel boring and predictable.
  If they feel clever, they are wrong.
+ 
+ 
+ 
+ => SwiftData + ViewModels — clean architecture without abusing Views
+ 
+ This is where most developers either:
+ -> Overuse SwiftData in views
+ -> Or over-abstract prematurely
+ 
+ This is where SwiftData meets real architecture.
+ 
+ SwiftData + ViewModels — clean separation without fighting SwiftUI
+ 
+ SwiftData + ViewModels — Professional Architecture::
+ 
+ 1. First, the Truth (Important)
+ SwiftData was designed to work directly with SwiftUI views.
+ 
+ So the rule is:
+ -> You do NOT need ViewModels everywhere.
+ 
+ But…
+ -> You DO need ViewModels when logic appears.
+ 
+ 2. When You Should Introduce a ViewModel
+ Introduce a ViewModel if you have:
+ -> Non-trivial business rules
+ -> Validation
+ -> Conditional logic
+ -> Reusable behavior
+ -> Side effects
+ Do not introduce ViewModels just to “look clean”.
+ 
+ 3. The Correct Responsibility Split:
+ 
+ View:
+ -> Displays data
+ -> Captures user intent
+ -> No business logic
+ -> No persistence decisions
+
+ ViewModel:
+ -> Orchestrates mutations
+ -> Enforces rules
+ -> Talks to ModelContext
+ -> Emits intent-driven methods
+ 
+ SwiftData Model:
+ -> Represents domain data
+ -> Holds no logic
+ 
+ 4. A Clean Production Example
+ 
+ Domain Model:
+ @Model
+ class Task {
+     var title: String
+     var isCompleted: Bool
+
+     init(title: String) {
+         self.title = title
+         self.isCompleted = false
+     }
+ }
+ 
+ ViewModel:
+ final class TaskListViewModel: ObservableObject {
+
+     private let context: ModelContext
+
+     init(context: ModelContext) {
+         self.context = context
+     }
+
+     func addTask(title: String) {
+         guard !title.isEmpty else { return }
+
+         let task = Task(title: title)
+         context.insert(task)
+     }
+
+     func toggleCompletion(for task: Task) {
+         task.isCompleted.toggle()
+     }
+
+     func delete(_ task: Task) {
+         context.delete(task)
+     }
+ }
+ 
+ Note:
+ -> ViewModel does not own data
+ -> It acts upon data
+ 
+ View:
+ struct TaskListView: View {
+
+     @Query private var tasks: [Task]
+     @Environment(\.modelContext) private var context
+
+     @StateObject private var viewModel: TaskListViewModel
+
+     init() {
+         let context = ModelContext.shared // conceptually injected
+         _viewModel = StateObject(
+             wrappedValue: TaskListViewModel(context: context)
+         )
+     }
+
+     var body: some View {
+         List {
+             ForEach(tasks) { task in
+                 HStack {
+                     Text(task.title)
+                     Spacer()
+                     Button {
+                         viewModel.toggleCompletion(for: task)
+                     } label: {
+                         Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                     }
+                 }
+             }
+             .onDelete { indexSet in
+                 indexSet.map { tasks[$0] }.forEach(viewModel.delete)
+             }
+         }
+         .toolbar {
+             Button("Add") {
+                 viewModel.addTask(title: "New Task")
+             }
+         }
+     }
+ }
+
+ 5. Important Design Decision:
+ 
+ Notice:
+ -> @Query stays in the View
+ -> ViewModel receives models, not arrays
+ -> No data duplication
+ 
+ This avoids:
+ -> State desynchronization
+ -> Double sources of truth
+ 
+ 6. Why ViewModels Should NOT Own @Query
+ // ❌ Don't do this
+ @Query var tasks: [Task]
+ Why?
+ -> @Query is view-scoped
+ -> Breaks SwiftUI lifecycle assumptions
+ 
+ 7. Dependency Injection (Clean)
+ In real apps:
+ -> Inject ModelContext from parent
+ -> Or use environment-based factories
+ 
+ Example:
+ TaskListView(viewModel: TaskListViewModel(context: context))
+ 
+ 8. SwiftData + Unidirectional Data Flow
+ 
+ View
+   ↓ intent
+ ViewModel
+   ↓ mutation
+ ModelContext
+   ↓ persistence
+ SwiftData
+   ↓ update
+ @Query
+   ↓ render
+ View
+ 
+ Perfect UDF alignment.
+ 
+ 9. Common Anti-Patterns
+ ❌ ViewModel holding arrays of models
+ @Published var tasks: [Task]
+ 
+ Wrong.
+ SwiftData already owns the data.
+ 
+ ❌ Business logic inside model
+ func complete() { isCompleted = true }
+ Tempting, but dangerous.
+ 
+ 10. Senior-Level Rule
+ -> SwiftData owns data.
+ -> ViewModels own behavior.
+ -> Views own presentation.
+ 
+ Stick to this, and apps scale cleanly.
  */
